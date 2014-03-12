@@ -1,5 +1,5 @@
 {*
-* 2007-2013 PrestaShop
+* 2007-2014 PrestaShop
 *
 * NOTICE OF LICENSE
 *
@@ -18,7 +18,7 @@
 * needs please refer to http://www.prestashop.com for more information.
 *
 *  @author PrestaShop SA <contact@prestashop.com>
-*  @copyright  2007-2013 PrestaShop SA
+*  @copyright  2007-2014 PrestaShop SA
 *  @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *  International Registered Trademark & Property of PrestaShop SA
 *}
@@ -74,7 +74,7 @@
 		<span class="gamification_progress-label" id="gamification_progress-label_tab">{l s="Level" mod='gamification' mod='gamification'} {$current_level|intval} : {$current_level_percent|intval} %</span>
 	</div>
 </fieldset>
-<div class="clear"></br></div>
+<div class="clear"><br/></div>
 
 {foreach from=$badges_type key=key item=type}
 <fieldset>
@@ -83,7 +83,7 @@
 	<ul class="badge_list" id="list_{$key}" style="">
 		{foreach from=$type.badges item=badge}
 		<li class="badge_square badge_all {if $badge->validated}validated {else} not_validated{/if} group_{$badge->id_group} level_{$badge->group_position} " id="{$badge->id|intval}">
-			<div class="gamification_badges_img"><img src="{$badge->getBadgeImgUrl()}"></div>
+			<div class="gamification_badges_img"><img src="{$badge->getBadgeImgUrl()}" alt="" /></div>
 			<div class="gamification_badges_name">{$badge->name|escape:html:'UTF-8'}</div>
 			<div class="gamification_badges_description" style="display:none">{$badge->description|escape:html:'UTF-8'}</div>
 		</li>
@@ -93,5 +93,5 @@
 	</ul>
 	<p id="no_badge_{$key}" class="gamification_badges_name" style="display:none;text-align:center">{l s="No badge in this section" mod='gamification'}</p>
 </fieldset>
-<div class="clear"></br></div>
+<div class="clear"><br/></div>
 {/foreach}

@@ -1,6 +1,6 @@
 <?php
 /*
-* 2007-2013 PrestaShop
+* 2007-2014 PrestaShop
 *
 * NOTICE OF LICENSE
 *
@@ -19,7 +19,7 @@
 * needs please refer to http://www.prestashop.com for more information.
 *
 *  @author PrestaShop SA <contact@prestashop.com>
-*  @copyright  2007-2013 PrestaShop SA
+*  @copyright  2007-2014 PrestaShop SA
 *  @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
 *  International Registered Trademark & Property of PrestaShop SA
 */
@@ -33,7 +33,7 @@ class BackwardCompatibility extends Module
 	{
 		$this->name = 'backwardcompatibility';
 		$this->tab = 'compatibility_tools';
-		$this->version = $this->getVersion();
+		$this->version = 0.6;
 		$this->author = 'PrestaShop';
 		$this->need_instance = 1;
 
@@ -45,18 +45,13 @@ class BackwardCompatibility extends Module
 		if ($this->active && defined('_PS_ADMIN_DIR_'))
 			$this->addContext();
 	}
-
-	protected function getVersion($ini_file = false)
+	
+	public function install()
 	{
-		if (!$ini_file)
-			$ini_file = dirname(__FILE__).'/backward_compatibility/backward.ini';
-
-		if (file_exists($ini_file))
-		{
-			$ini_values = parse_ini_file($ini_file);
-			return array_shift($ini_values);
-		}
-		return false;
+		if (version_compare(_PS_VERSION_, '1.5') >= 0)
+			return false;
+		
+		return parent::install();
 	}
 
 	public function addContext()
@@ -151,6 +146,19 @@ class BackwardCompatibility extends Module
 		}
 
 		return $results;
+	}
+
+	protected function getVersion($ini_file = false)
+	{
+		if (!$ini_file)
+			$ini_file = dirname(__FILE__).'/backward_compatibility/backward.ini';
+
+		if (file_exists($ini_file))
+		{
+			$ini_values = parse_ini_file($ini_file);
+			return array_shift($ini_values);
+		}
+		return false;
 	}
 }
 

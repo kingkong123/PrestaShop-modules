@@ -1,6 +1,6 @@
 <?php
 /*
-* 2007-2013 PrestaShop
+* 2007-2014 PrestaShop
 *
 * NOTICE OF LICENSE
 *
@@ -19,7 +19,7 @@
 * needs please refer to http://www.prestashop.com for more information.
 *
 *  @author PrestaShop SA <contact@prestashop.com>
-*  @copyright  2007-2013 PrestaShop SA
+*  @copyright  2007-2014 PrestaShop SA
 *  @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
 *  International Registered Trademark & Property of PrestaShop SA
 */
@@ -182,6 +182,32 @@ class Condition extends ObjectModel
 		$sub_query->select('id_badge');
 		$sub_query->from('badge', 'b');
 		$sub_query->where('b.`group_position` = '.(int)$badge_group_position);
+		$sub_query->where('b.`validated` = 0');
+		$sub_query->groupBy('b.`id_group`');
+		
+		$query = new DbQuery();
+		$query->select('c.`id_condition`');
+		$query->from('condition', 'c');
+		$query->join('LEFT JOIN `'._DB_PREFIX_.'condition_badge` cb ON cb.`id_condition` = c.`id_condition`');
+		$query->where('c.`validated` = 0');
+		$query->where('cb.`id_badge` IN ('.$sub_query.')');
+		$query->groupBy('c.`id_condition`');
+		
+		$result = Db::getInstance()->executeS($query);
+		foreach($result as $r)
+			$ids[] = $r['id_condition'];
+
+		return $ids;
+	}
+	
+	public static function getIdsByBadgeGroup($badge_group)
+	{
+		$ids = array();
+		
+		$sub_query = new DbQuery();
+		$sub_query->select('id_badge');
+		$sub_query->from('badge', 'b');
+		$sub_query->where('b.`id_group` = '.(int)$badge_group);
 		$sub_query->where('b.`validated` = 0');
 		$sub_query->groupBy('b.`id_group`');
 		

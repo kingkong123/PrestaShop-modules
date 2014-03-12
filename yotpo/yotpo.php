@@ -23,7 +23,7 @@ class Yotpo extends Module
 		$version_test = $version_mask[0] > 0 && $version_mask[1] > 4;
 		$this->name = 'yotpo';
 		$this->tab = $version_test ? 'advertising_marketing' : 'Reviews';
-		$this->version = '1.3.1';
+		$this->version = '1.3.5';
 		if ($version_test)
 			$this->author = 'Yotpo';
 		$this->need_instance = 1;
@@ -103,7 +103,13 @@ class Yotpo extends Module
 		$smarty->assign(array('yotpoAppkey' => Configuration::get('yotpo_app_key'), 
 							  'yotpoDomain' => $this->getShopDomain(),
 							  'yotpoLanguage' => $this->getLanguage()));
-		return '<script src="https://www.yotpo.com/js/yQuery.js"></script>';
+		
+		if(isset($this->context) && isset($this->context->controller) && method_exists($this->context->controller, 'addJS')) {
+			$this->context->controller->addJS(($this->_path).'headerScript.js');
+		}
+		else {
+			return '<script type="text/javascript" src="'.$this->_path.'headerScript.js"></script>';				
+		}
 	}
 
 	public function hookproductfooter($params)
@@ -188,9 +194,9 @@ class Yotpo extends Module
 		else
 			echo '<link rel="stylesheet" type="text/css" href="../modules/yotpo/css/form.css" />';	
 
-		$this->processRegistrationForm();
+		$force_settings = $this->processRegistrationForm() == 'b2c';
 		$this->processSettingsForm();
-		$this->displayForm();
+		$this->displayForm($force_settings);
 
 		return '<img src="http://www.prestashop.com/modules/yotpo.png?url_site='.Tools::safeOutput($_SERVER['SERVER_NAME']).'" alt="" style="display: none;" />'.$this->_html;
 	}
@@ -216,23 +222,13 @@ class Yotpo extends Module
 
 	private function getProductLink($product_id, $link_rewrite = null)
 	{
-		if($link_rewrite == null && method_exists('Product','getUrlRewriteInformations')) {
-			$rewrite_info = Product::getUrlRewriteInformations($product_id);
-			$link_rewrite = $rewrite_info['link_rewrite'];	
-			$rewrite_info['category_rewrite'];
-		}
-		
-		if (isset($this->context) && isset($this->context->link) && method_exists($this->context->link, 'getProductLink'))
-			return $this->context->link->getProductLink((int)$product_id, $link_rewrite);
-
 		global $link;
 		if (isset($link) && method_exists($link, 'getProductLink'))
-			return $link->getProductLink((int)$product_id, $link_rewrite);
+			return $link->getProductLink((int)$product_id);
 		else
 		{
-			$full_product = new Product((int)$product_id, false);
 			$link = new Link();
-			return $link->getProductLink($full_product);			
+			return $link->getProductLink((int)$product_id);	
 		}
 	}
 
@@ -353,39 +349,65 @@ class Yotpo extends Module
 			  	($is_mail_valid['json'] == true && $is_mail_valid['response']['available'] == true) || 
 			  	($is_mail_valid['json'] == false && preg_match("/available[\W]*(true)/",$is_mail_valid['response']) == 1))
 			{
-				$registerResponse = $this->httpClient()->register($email, $name, $password, _PS_BASE_URL_);
-				if ($registerResponse['status_code'] == 200)
-				{
-					$app_key ='';
-					$secret = '';
-					if ($registerResponse['json'] == true)
-						$app_key = $registerResponse['response']['app_key'];
-					else 
+				$response = $this->httpClient()->check_if_b2c_user($email);
+                if (empty($response['response']['data']))
+                {
+					$registerResponse = $this->httpClient()->register($email, $name, $password, _PS_BASE_URL_);
+					
+					if ($registerResponse['status_code'] == 200)
 					{
-						preg_match("/app_key[\W]*[\"'](.*?)[\"']/",$registerResponse['response'], $matches);
-						$app_key = $matches[1];
-						unset($matches);
-					}
-					$secret ='';
-					if ($registerResponse['json'] == true)
-						$secret = $registerResponse['response']['secret'];
-					else 
-					{
-						preg_match("/secret[\W]*[\"'](.*?)[\"']/",$registerResponse['response'], $matches);
-						$secret = $matches[1];
-					}					
-					$accountPlatformResponse = $this->httpClient()->createAcountPlatform($app_key, $secret, _PS_BASE_URL_);
-					if ($accountPlatformResponse['status_code'] == 200)
-					{
-						Configuration::updateValue('yotpo_app_key', $app_key, false);
-						Configuration::updateValue('yotpo_oauth_token', $secret, false);
-						return $this->prepareSuccess($this->l('Account successfully created'));
+						$app_key ='';
+						$secret = '';
+						if ($registerResponse['json'] == true)
+							$app_key = $registerResponse['response']['app_key'];
+						else 
+						{
+							preg_match("/app_key[\W]*[\"'](.*?)[\"']/",$registerResponse['response'], $matches);
+							$app_key = $matches[1];
+							unset($matches);
+						}
+						$secret ='';
+						if ($registerResponse['json'] == true)
+							$secret = $registerResponse['response']['secret'];
+						else 
+						{
+							preg_match("/secret[\W]*[\"'](.*?)[\"']/",$registerResponse['response'], $matches);
+							$secret = $matches[1];
+						}					
+						$accountPlatformResponse = $this->httpClient()->createAcountPlatform($app_key, $secret, _PS_BASE_URL_);
+						if ($accountPlatformResponse['status_code'] == 200)
+						{
+							Configuration::updateValue('yotpo_app_key', $app_key, false);
+							Configuration::updateValue('yotpo_oauth_token', $secret, false);
+							return $this->prepareSuccess($this->l('Account successfully created'));
+						}
+						else
+							return $this->prepareError($accountPlatformResponse['status_message']);	
 					}
 					else
-						return $this->prepareError($accountPlatformResponse['status_message']);	
-				}
-				else
-					return $this->prepareError($registerResponse['status_message']);
+						return $this->prepareError($registerResponse['status_message']);
+                }
+                else
+                {
+                    $id = $response['response']['data']['id'];
+                    $data = array(
+                        'password'=> $password,
+                        'display_name'=> $name,
+                        'account' => array(
+                            'url' => _PS_BASE_URL_,
+                            'custom_platform_name'=>null,
+                            'install_step'=>8,
+                            'account_platform' => array(
+                                'shop_domain'=> _PS_BASE_URL_,
+                                'platform_type_id'=>8,
+                            )
+                        )
+                    );
+                    $this->httpClient()->create_user_migration($id,$data);
+                    $this->httpClient()->notify_user_migration($id);
+                    $this->prepareError($this->l('We have sent you a confirmation email. Please check and click on the link to get your app key and secret token to fill out below.'));
+                    return 'b2c';
+                }
 			}
 			else
 				return $is_mail_valid['status_code'] == 200 ? $this->prepareError($this->l('This e-mail address is already taken.')) : $this->prepareError();
@@ -450,7 +472,7 @@ class Yotpo extends Module
 		}
 	}
 
-	private function displayForm()
+	private function displayForm($force_settings = false)
 	{
 		global $smarty;
 
@@ -463,7 +485,7 @@ class Yotpo extends Module
 		if (Tools::isSubmit('yotpo_register'))
 			$smarty->assign('yotpo_finishedRegistration', true);
 
-		return Configuration::get('yotpo_app_key') == '' ? $this->displayRegistrationForm() : $this->displaySettingsForm();
+		return Configuration::get('yotpo_app_key') != '' || $force_settings ? $this->displaySettingsForm() : $this->displayRegistrationForm();
 	}
 
 	private function displayRegistrationForm()
@@ -688,10 +710,10 @@ class Yotpo extends Module
 		return $language;
 	}
 	
-	private function getRichSnippet($product_id) {		
+	private function getRichSnippet($product_id) {
+		$result = '';		
 		if (Configuration::get('yotpo_app_key') != '' && Configuration::get('yotpo_oauth_token') != '' && is_int($product_id)) {
 			try {
-
 				$result = YotpoSnippetCache::getRichSnippet($product_id);
 				$should_update_row = is_array($result) && !YotpoSnippetCache::isValidCache($result); 			
 				if($result == false || $should_update_row) {			

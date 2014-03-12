@@ -1,6 +1,6 @@
 <?php
 /*
-* 2007-2013 PrestaShop
+* 2007-2014 PrestaShop
 *
 * NOTICE OF LICENSE
 *
@@ -19,7 +19,7 @@
 * needs please refer to http://www.prestashop.com for more information.
 *
 *  @author PrestaShop SA <contact@prestashop.com>
-*  @copyright  2007-2013 PrestaShop SA
+*  @copyright  2007-2014 PrestaShop SA
 *  @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
 *  International Registered Trademark & Property of PrestaShop SA
 */
@@ -46,7 +46,7 @@ class Badge extends ObjectModel
 	
 	public $description;
 	
-	const BAGDE_IMG_URL = 'http://gamification.prestashop.com/api/getBadgeImg';
+	const BAGDE_IMG_URL = 'gamification.prestashop.com/api/getBadgeImg';
 	
 	/**
 	 * @see ObjectModel::$definition
@@ -72,7 +72,14 @@ class Badge extends ObjectModel
 	
 	public function getBadgeImgUrl()
 	{
-		return self::BAGDE_IMG_URL.'/'.(int)$this->id_ps_badge.'/'.(int)$this->validated.'.png';
+		return Tools::getShopProtocol().self::BAGDE_IMG_URL.'/'.(int)$this->id_ps_badge.'/'.(int)$this->validated.'.png';
+	}
+	
+	public function validate()
+	{
+		$this->validated = 1;
+		$this->save();
+		return true;
 	}
 	
 	public static function getIdByIdPs($id_ps_badge)

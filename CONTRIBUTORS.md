@@ -1,7 +1,10 @@
+- Adyen 
 - Agustin 
 - Albin Kerouanton 
 - Alexandre Segura 
+- Alon Braitstein 
 - antoniofr 
+- arossetti 
 - Axome 
 - Baptiste GAUTHIER 
 - bellini13 
@@ -12,36 +15,53 @@
 - Claude Traglia 
 - cmouleyre 
 - Damien Metzger 
+- DevNet 
 - Dh42 
 - djfm 
 - doekia 
 - e.lito 
 - ESPIAU Nicolas 
 - fram 
+- François Gaillard 
 - François-Marie de Jouvencel 
 - Francois Gaillard 
 - Gregory Roussac 
 - gRoussac 
 - GuigZ 
+- Guillaume DELOINCE 
 - hadjedjvincent 
+- IsabelleCoccinet 
 - J. Danse 
+- Jerome Nadaud 
+- Jonadabe 
+- Julien 
 - Julien Bijoux 
 - Ken Mendes 
+- khokha elmahdi 
+- Krystian Podemski 
 - lsparer 
 - Mathieu 
 - MatthieuB 
+- modem 
 - Obvious1809 
+- OliverMuellerShopgate 
+- PaymentSense-Developer 
 - PrestaEdit 
+- PrestanceDesign 
 - quadrateam 
 - Quadra Team 
 - Rémi Gaillard 
 - RaphArbuz 
 - Robert 
 - samy-r 
+- sjousse 
 - Sparer lilian 
+- Talha Umer Syed 
 - Thoma 
 - thoma202 
+- Thoma Bigueres 
 - Tredez Guillaume 
+- tucoinfo 
 - vAugagneur 
 - Vincent Augagneur 
 - Vincent Terenti 
@@ -49,3 +69,4 @@
 - Xavier 
 - Yann CYRILLE 
 - Youness ZIOUANE 
+- zuzul 

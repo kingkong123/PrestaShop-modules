@@ -1,6 +1,7 @@
 <?php
+
 /*
- * 2007-2013 PrestaShop
+ * 2007-2014 PrestaShop
  *
  * NOTICE OF LICENSE
  *
@@ -20,7 +21,7 @@
  *
  *  @author PrestaShop SA <contact@prestashop.com>
  *  @author Quadra Informatique <modules@quadra-informatique.fr>
- *  @copyright  2007-2013 PrestaShop SA / 1997-2013 Quadra Informatique
+ *  @copyright  2007-2014 PrestaShop SA / 1997-2013 Quadra Informatique
  *  @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  *  International Registered Trademark & Property of PrestaShop SA
  */
@@ -28,23 +29,24 @@ include_once('../../config/config.inc.php');
 include_once('../../init.php');
 include_once('../../modules/socolissimo/socolissimo.php');
 
-// To have context available and translation
+/* To have context available and translation */
 $socolissimo = new Socolissimo();
 
-// Default answer values => key
+/* Default answer values => key */
 $result = array(
 	'answer' => true,
 	'msg' => ''
 );
 
-// Check Token
-if (Tools::getValue('token') != sha1('socolissimo' . _COOKIE_KEY_ . Context::getContext()->cart->id))
+/* Check Token */
+
+if (Tools::getValue('token') != sha1('socolissimo'._COOKIE_KEY_.Context::getContext()->cart->id))
 {
 	$result['answer'] = false;
 	$result['msg'] = $socolissimo->l('Invalid token');
 }
 
-// If no problem with token but no delivery available
+/* If no problem with token but no delivery available */
 if ($result['answer'] && !($result = $socolissimo->getDeliveryInfos(Context::getContext()->cart->id, Context::getContext()->customer->id)))
 {
 	$result['answer'] = false;

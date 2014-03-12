@@ -6,6 +6,7 @@ class AdminGamificationController extends ModuleAdminController
 {
 	public function __construct()
 	{
+		$this->bootstrap = true;
 		$this->display = 'view';
 		$this->meta_title = $this->l('Your Merchant Expertise');
 		parent::__construct();
@@ -16,20 +17,30 @@ class AdminGamificationController extends ModuleAdminController
 	public function setMedia()
 	{
 		$this->addJqueryUI('ui.progressbar');
-		$this->addJS(array('/modules/gamification/views/js/bubble-popup.js', '/modules/gamification/views/js/gamification.js', '/modules/gamification/views/js/jquery.isotope.js'));
-		$this->addCSS(array('/modules/gamification/views/css/bubble-popup.css', '/modules/gamification/views/css/isotope.css'));
+		$this->addJS(_MODULE_DIR_.$this->module->name.'/views/js/bubble-popup.js');
+
+		if (version_compare(_PS_VERSION_, '1.6.0', '>=') === true)
+			$this->addJs(_MODULE_DIR_.$this->module->name.'/views/js/gamification_bt.js');
+		else
+			$this->addJs(_MODULE_DIR_.$this->module->name.'/views/js/gamification.js');
+
+		$this->addJs(_MODULE_DIR_.$this->module->name.'/views/js/jquery.isotope.js');
+		$this->addCSS(array(_MODULE_DIR_.$this->module->name.'/views/css/bubble-popup.css', _MODULE_DIR_.$this->module->name.'/views/css/isotope.css'));
 		
 		return parent::setMedia();
 	}
 	
 	public function initToolBarTitle()
 	{
-		$this->toolbar_title = $this->l('Your Merchant Expertise');
+		$this->toolbar_title[] = $this->l('Administration');
+		$this->toolbar_title[] = $this->l('Merchant Expertise');
 	}
 	
-	public function initToolBar()
+	public function initPageHeaderToolbar()
 	{
-		return true;
+		parent::initPageHeaderToolbar();
+		unset($this->page_header_toolbar_btn['back']);
+
 	}
 	
 	public function renderView()
@@ -55,7 +66,7 @@ class AdminGamificationController extends ModuleAdminController
 		$query->from('badge', 'b');
 		$query->join('
 			LEFT JOIN `'._DB_PREFIX_.'badge_lang` bl ON bl.`id_badge` = b.`id_badge`');
-
+		$query->where('bl.id_lang = '.(int)$this->context->language->id);
 		$result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($query);
 
 		foreach ($result as $res)
@@ -83,6 +94,10 @@ class AdminGamificationController extends ModuleAdminController
 			'groups' => $groups,
 			'levels' => $levels,
 		);
+
+		if (version_compare(_PS_VERSION_, '1.5.6.0', '>'))
+			$this->base_tpl_view = 'view_bt.tpl';
+		
 		return parent::renderView();
 	}
 	
@@ -105,7 +120,7 @@ class AdminGamificationController extends ModuleAdminController
 			'daily_calculation' => $this->processMakeDailyCalculation(),
 			'advice_validation' => $this->processAdviceValidation(),
 			'advices_to_display' => $this->processGetAdvicesToDisplay(),
-			'level_badge_validation' => $this->processLevelAndBadgeValidation(),
+			'level_badge_validation' => $this->processLevelAndBadgeValidation(Badge::getIdsBadgesToValidate()),
 			'header_notification' => $this->module->renderHeaderNotification(),
 		)));
 	}
@@ -161,7 +176,7 @@ class AdminGamificationController extends ModuleAdminController
 		return $return;
 	}
 	
-	public function processLevelAndBadgeValidation()
+	public function processLevelAndBadgeValidation($ids_badge)
 	{
 		$return = true;
 		$current_level = (int)Configuration::get('GF_CURRENT_LEVEL');
@@ -169,8 +184,7 @@ class AdminGamificationController extends ModuleAdminController
 		
 		$not_viewed_badge = explode('|', ltrim(Configuration::get('GF_NOT_VIEWED_BADGE', ''), ''));
 		$nbr_notif = Configuration::get('GF_NOTIFICATION', 0);
-		
-		$ids_badge = Badge::getIdsBadgesToValidate();
+
 		if (count($ids_badge))
 			$not_viewed_badge = array(); //reset the last badge only if there is new badge to validate
 				
@@ -185,8 +199,20 @@ class AdminGamificationController extends ModuleAdminController
 			else
 				$current_level_percent += $badge->scoring;
 			
-			$badge->validated = 1;
-			$return &= $badge->save();
+			$return &= $badge->validate();
+			$condition_ids = Condition::getIdsByBadgeGroup($badge->id_group);
+			if (is_array($condition_ids) && count($condition_ids))
+			{
+				foreach ($condition_ids as $id)
+				{
+					$cond = new Condition((int)$id);
+					$cond->processCalculation();
+					unset($cond);
+				}
+				$new_ids_badge = Badge::getIdsBadgesToValidate();
+				$this->processLevelAndBadgeValidation($new_ids_badge);
+			}
+			
 			$nbr_notif ++;
 			$not_viewed_badge[] = $badge->id;
 		}
@@ -212,5 +238,24 @@ class AdminGamificationController extends ModuleAdminController
 			}
 			$group_position ++;
 		}while(count($condition_ids));
+	}
+	
+	public function ajaxProcessSavePreactivationRequest()
+	{
+		$isoUser = Context::getContext()->language->iso_code;
+		$isoCountry = Context::getContext()->country->iso_code;
+		$employee = new Employee((int)Context::getContext()->cookie->id_employee);
+		$firstname = $employee->firstname;
+		$lastname = $employee->lastname;
+		$email = $employee->email;
+		$return = @Tools::file_get_contents('http://api.prestashop.com/partner/premium/set_request.php?iso_country='.strtoupper($isoCountry).'&iso_lang='.strtolower($isoUser).'&host='.urlencode($_SERVER['HTTP_HOST']).'&ps_version='._PS_VERSION_.'&ps_creation='._PS_CREATION_DATE_.'&partner='.htmlentities(Tools::getValue('module')).'&shop='.urlencode(Configuration::get('PS_SHOP_NAME')).'&email='.urlencode($email).'&firstname='.urlencode($firstname).'&lastname='.urlencode($lastname).'&type=home');
+		die($return);
+	}
+
+	public function ajaxProcessCloseAdvice()
+	{
+		$id_advice = Advice::getIdByIdPs((int)Tools::getValue('id_advice'));
+		Db::getInstance()->execute('UPDATE `ps_advice` SET `hide` =  \'1\' WHERE  `id_advice` = '.(int)$id_advice.';');
+		die();
 	}
 }

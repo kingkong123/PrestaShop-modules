@@ -1,6 +1,6 @@
 <?php
 /*
-* 2007-2013 PrestaShop
+* 2007-2014 PrestaShop
 *
 * NOTICE OF LICENSE
 *
@@ -19,7 +19,7 @@
 * needs please refer to http://www.prestashop.com for more information.
 *
 * @author PrestaShop SA <contact@prestashop.com>
-* @copyright  2007-2013 PrestaShop SA
+* @copyright  2007-2014 PrestaShop SA
 * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 * International Registered Trademark & Property of PrestaShop SA
 */
@@ -27,7 +27,7 @@
 if (!defined('_PS_VERSION_'))
 	exit;
 
-require_once(dirname(__FILE__).'/AddshoppersClient.php');
+require_once(_PS_MODULE_DIR_.'addshoppers/AddshoppersClient.php');
 
 class Addshoppers extends Module
 {
@@ -38,7 +38,7 @@ class Addshoppers extends Module
 	{
 		$this->name = 'addshoppers';
 		$this->tab = 'advertising_marketing';
-		$this->version = '1.1.2';
+		$this->version = '1.1.4';
 		$this->author = 'PrestaShop';
 		$this->need_instance = 1;
 
@@ -77,6 +77,8 @@ class Addshoppers extends Module
 		$shop_id = $this->getShopId();
 		$buttons_code = $this->client->getButtonsCode();
 
+		$this->context->controller->addCSS($this->_path.'/static/css/shop.css', 'all');
+		
 		if (Configuration::get('ADDSHOPPERS_OPENGRAPH') == '1')
 			$this->context->smarty->assign('buttons_opengraph', $buttons_code['buttons']['open-graph']);
 		if (Configuration::get('ADDSHOPPERS_BUTTONS') == '1')
